@@ -82,6 +82,21 @@ describe('catalog mapping independent of desktop platform', () => {
   // #9101: author only server-compatible Chat runtimes; the existing portable
   // preset expansion adds Claude Code without assuming a native Messages API.
   // This catches dropped presets and accidental native-protocol defaults.
+  // AI/ML API ships Chat Completions runtimes only. The portable expansion adds Claude
+  // Code over the same Bearer Chat bridge; lookalike hosts never match the preset.
+  it('binds AI/ML API to the exact api.aimlapi.com Chat endpoint for every harness', () => {
+    const url = 'https://api.aimlapi.com/v1';
+    const preset = presets.find(p => p.id === 'aimlapi')!;
+    expect(preset.name).toBe('AI/ML API');
+    expect(Object.keys(preset.runtimes)).toEqual(['codex', 'pi', 'claude-code']);
+    expect(matchOfficialProviders(url, presets).map(p => p.id)).toEqual(['aimlapi']);
+    for (const agent of ['claude-code', 'codex', 'pi'] as const) {
+      expect(bindDetectedProvider(preset, agent, url)?.runtimes[agent]).toMatchObject({ baseUrl: url, wireProtocol: 'openai-chat' });
+    }
+    for (const fake of ['https://api.aimlapi.com.evil.test/v1', 'https://evil-api.aimlapi.com/v1', 'http://api.aimlapi.com/v1', url + '/unregistered']) {
+      expect(matchOfficialProviders(fake, presets)).toEqual([]);
+    }
+  });
   it('keeps Hinoki selectable through the existing Claude Chat bridge', () => {
     const url = 'https://inference.hinoki.security/v1';
     const preset = presets.find(p => p.id === 'hinoki')!;

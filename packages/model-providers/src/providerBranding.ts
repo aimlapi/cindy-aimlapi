@@ -66,6 +66,7 @@ const connectionBrandCatalog = {
   openhubs: ['mark-openhubs', 'OpenHubs'],
   agnes: ['mark-agnes', 'Agnes AI'],
   hinoki: ['mark-hinoki', 'Hinoki'],
+  aimlapi: ['mark-aimlapi', 'AI/ML API'],
   magpie: ['mark-magpie', 'Magpie'],
 } as const satisfies Record<BrandLogo, readonly [`mark-${string}`, string]>;
 
@@ -110,6 +111,8 @@ export const PROVIDER_LOGO_PATHS = {
   // https://github.com/nexu-io/open-design/blob/59e4f2ae85de7e7318a5e6bdcf3a34584c4b7582/apps/web/public/brand-icon.svg
   'open-design': 'M12 0C22.1196 0 24 1.8804 24 12C24 22.1196 22.1196 24 12 24C1.8804 24 0 22.1196 0 12C0 1.8804 1.8804 0 12 0ZM11.96798 4.5959C7.878 4.5959 4.56231 7.9115 4.56231 12.0006V18.421C4.56234 18.9663 5.00224 19.4062 5.54754 19.4062H11.96798C16.058 19.4062 19.37362 16.0906 19.37368 12.0006C19.37368 7.9106 16.058 4.59593 11.96798 4.5959ZM11.96798 6.07798C15.24 6.078 17.89253 8.7305 17.89253 12.0006C17.8925 15.2727 15.24 17.9251 11.96798 17.92513C8.696 17.92513 6.04346 15.2727 6.04343 12.0006C6.04343 8.7284 8.696 6.07798 11.96798 6.07798ZM9.55449 9.228C9.36354 9.1542 9.1757 9.34275 9.24866 9.53498L11.50668 15.47647C11.60034 15.723 11.96398 15.6555 11.96398 15.3916V11.9874H15.41415C15.67624 11.9874 15.74365 11.6225 15.499 11.52783L9.55449 9.228Z',
 
+  // Official mark from https://aimlapi.com (home-v2 logo-mark-dark.svg), scaled to 24px (2026-11-25).
+  aimlapi: 'M23.319 10.765C23.762 11.529 23.762 12.471 23.319 13.235L18.731 21.158C18.289 21.922 17.471 22.393 16.587 22.393L7.411 22.393C6.526 22.393 5.708 21.922 5.266 21.158L0.678 13.235C0.236 12.471 0.236 11.529 0.678 10.765L5.266 2.842C5.708 2.078 6.526 1.607 7.411 1.607L16.587 1.607C17.471 1.607 18.289 2.078 18.731 2.842L23.319 10.765ZM6.923 15.455C7.166 15.455 7.405 15.346 7.565 15.14L10.295 11.603L13.334 13.984C13.504 14.116 13.718 14.178 13.933 14.149C14.147 14.123 14.341 14.013 14.473 13.843L17.632 9.778C17.906 9.427 17.842 8.92 17.488 8.647C17.134 8.372 16.627 8.437 16.353 8.791L13.693 12.214L10.652 9.832C10.482 9.698 10.269 9.637 10.051 9.665C9.837 9.692 9.642 9.803 9.511 9.974L6.283 14.157C6.01 14.51 6.077 15.016 6.43 15.288C6.577 15.4 6.751 15.455 6.923 15.455Z',
   // Official https://hinoki.security/assets/beta/logomark.svg, scaled to 24px (2026-11-06).
   hinoki: 'M7.41177 0C3.3182 0 0 3.31837 0 7.41174V24H16.58827C20.68173 24 24 20.68156 24 16.58818V0H7.41177Z',
   // Official Magpie mark, scaled from its 44px viewBox to this package's 24px grid.
@@ -201,6 +204,7 @@ const PROVIDER_LOGO_KIND_BY_ID: Readonly<Record<string, ProviderLogoKind>> = {
   'iflytek-maas': 'iflytek-maas',
   'open-design': 'open-design',
   hinoki: 'hinoki',
+  aimlapi: 'aimlapi',
   agnes: 'agnes',
   openhubs: 'openhubs',
   sub2api: 'sub2api',
@@ -288,6 +292,7 @@ const PROVIDER_LOGO_KIND_BY_HOST: readonly (readonly [string, ProviderLogoKind])
   ['maas-api.cn-huabei-1.xf-yun.com', 'iflytek-maas'],
   ['amr-link.open-design.ai', 'open-design'],
   ['inference.hinoki.security', 'hinoki'],
+  ['api.aimlapi.com', 'aimlapi'],
   ['apihub.agnes-ai.com', 'agnes'],
   ['openhubs.zhidemai.com', 'openhubs'],
   ["api.ant-ling.com", "antgroup"],

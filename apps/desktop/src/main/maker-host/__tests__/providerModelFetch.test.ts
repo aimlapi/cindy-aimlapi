@@ -4,6 +4,8 @@
  * （模式同 providerDiagnostics.test.ts）。
  */
 
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { describe, it, expect, vi } from 'vitest';
 import { BUNDLED_CATALOG } from '@cindy/model-providers';
 import { acceptsModelSourceSnapshot, modelSourceRequestSignature } from '../model-source-snapshots.js';
@@ -145,6 +147,46 @@ describe('Token Rhythm discovery reads', () => {
 });
 
 describe('import discovery limits', () => {
+  // AI/ML API preset: discovery sends the Bearer key only to api.aimlapi.com, keeps it off
+  // a cross-origin redirect target, and imports only Chat Completions rows of the mixed catalog.
+  it.each(['claude-code', 'codex', 'pi'] as const)
+  ('discovers AI/ML API %s chat models without leaking the key across a redirect', async agent => {
+    const preset = BUNDLED_CATALOG.presets!.find(p => p.id === 'aimlapi')!;
+    const runtime = preset.runtimes[agent]!;
+    expect(runtime).toMatchObject({ baseUrl: 'https://api.aimlapi.com/v1', wireProtocol: 'openai-chat' });
+    const seen: Array<{ host: string; authorization?: string }> = [];
+    const other = createServer((req, res) => {
+      seen.push({ host: 'other', authorization: req.headers.authorization });
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ data: [
+        { id: 'vendor/chat', type: 'openai/chat-completions', info: { name: 'Chat', contextLength: 131072 } },
+        { id: 'vendor/chat', type: 'openai/responses/submit' },
+        { id: 'vendor/image', type: 'openai/image-generations' },
+      ] }));
+    });
+    await new Promise<void>(resolve => other.listen(0, '127.0.0.1', resolve));
+    const otherOrigin = `http://127.0.0.1:${(other.address() as AddressInfo).port}`;
+    const official = createServer((req, res) => {
+      seen.push({ host: 'aimlapi', authorization: req.headers.authorization });
+      res.writeHead(302, { location: `${otherOrigin}/v1/models` });
+      res.end();
+    });
+    await new Promise<void>(resolve => official.listen(0, '127.0.0.1', resolve));
+    const officialOrigin = `http://127.0.0.1:${(official.address() as AddressInfo).port}`;
+    try {
+      const result = await fetchProviderModels(spec({ agent, ...runtime }), async (url, init) => {
+        expect(String(url)).toBe('https://api.aimlapi.com/v1/models');
+        return fetch(String(url).replace('https://api.aimlapi.com', officialOrigin), init);
+      });
+      expect(seen).toEqual([
+        { host: 'aimlapi', authorization: 'Bearer sk-test' },
+        { host: 'other', authorization: undefined },
+      ]);
+      expect(result.models?.map(m => m.id)).toEqual(['vendor/chat']);
+    } finally {
+      await Promise.all([official, other].map(server => new Promise(resolve => server.close(resolve))));
+    }
+  });
   // #9101 review regression: three identical Chat runtimes must perform one
   // HTTP read, while each consumer still issues its own agent-bound receipt.
   it('coalesces concurrent Hinoki reads without sharing agent provenance', async () => {

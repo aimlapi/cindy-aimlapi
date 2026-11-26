@@ -5,6 +5,26 @@ import { buildUserProvider } from '../user-provider.js';
 import { BUNDLED_CATALOG } from '../catalog.js';
 
 describe('shared provider discovery', () => {
+  // The AI/ML API catalog repeats each id per endpoint type (Responses, Messages, images...).
+  // Only Chat Completions rows match the preset's openai-chat runtime, whatever their order.
+  it('keeps only AI/ML API Chat Completions rows from the mixed endpoint catalog', () => {
+    const catalog = { object: 'list', data: [
+      { id: 'vendor/model-a', type: 'openai/responses/submit', info: { name: 'Model A', contextLength: 1000 } },
+      { id: 'vendor/model-a', type: 'openai/chat-completions', info: { name: 'Model A', contextLength: 1_000_000 } },
+      { id: 'vendor/image-model', type: 'openai/image-generations', info: { name: 'Image' } },
+      { id: 'vendor/claude-like', type: 'anthropic/messages', info: { name: 'Messages only' } },
+      { id: 'vendor/model-b', type: 'openai/chat-completions', info: { name: 'Model B', contextLength: 262_144 } },
+    ] };
+    const discovered = parseModelsListResponse(catalog, 'https://api.aimlapi.com/v1/models');
+    expect(discovered?.map(m => [m.id, m.name, m.contextWindow])).toEqual([
+      ['vendor/model-a', 'Model A', 1_000_000],
+      ['vendor/model-b', 'Model B', 262_144],
+    ]);
+    // Other sources and lookalike hosts keep the generic behavior.
+    expect(parseModelsListResponse(catalog, 'https://api.aimlapi.com.evil.test/v1/models')?.map(m => m.id))
+      .toEqual(['vendor/model-a', 'vendor/image-model', 'vendor/claude-like', 'vendor/model-b']);
+  });
+
   // #11446 / #8311, unit: real discovery -> refresh -> JSON save -> three engines.
   // Previous coverage only exercised Go; Zen's image/jpeg persisted false.
   it.each([

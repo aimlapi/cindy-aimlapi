@@ -136,6 +136,30 @@ describe('Pi-owned transport for Cindy harnesses', () => {
   // #9101, unit: preset import + installed Chat SDK serialization protects all
   // harnesses from assuming Messages/Responses based on their names. Existing
   // cases use other suppliers/protocols; the minimum input is the Hinoki seed.
+  // AI/ML API preset: every harness goes through the installed Bearer Chat adapter to the
+  // exact api.aimlapi.com Chat Completions endpoint, keeping the catalog model id on the wire.
+  it.each(['claude-code', 'codex', 'pi'] as const)
+  ('serializes the AI/ML API %s preset through Bearer Chat to api.aimlapi.com', async agent => {
+    const preset = BUNDLED_CATALOG.presets!.find(p => p.id === 'aimlapi')!;
+    const runtime = preset.runtimes[agent]!;
+    const provider = buildUserProvider({ id: 'aimlapi-test', name: 'AI/ML API', runtimes: {
+      [agent]: { ...runtime, catalogPresetId: preset.id },
+    } }, { presets: BUNDLED_CATALOG.presets, modelRegistry: BUNDLED_CATALOG.modelRegistry });
+    const model = provider.models[agent]![0];
+    const api = modelProtocolComparison(provider, { [agent]: model }).forAgent(agent)!.outbound!;
+    const row = invocationModelRecord(model, model.route?.baseUrl ?? runtime.baseUrl, api)!;
+    const send = createPiProviderFetch({ row, providerId: provider.id, apiKey: 'fixture-key', fetchImpl: async (url, init) => {
+      expect(String(url)).toBe('https://api.aimlapi.com/v1/chat/completions');
+      expect(new Headers(init?.headers).get('authorization')).toBe('Bearer fixture-key');
+      expect(JSON.parse(String(init?.body))).toMatchObject({ model: 'anthropic/claude-sonnet-5.5', stream: true });
+      return new Response(reply, { headers: { 'content-type': 'text/event-stream' } });
+    } });
+    const output = await (await send('https://unused.invalid', { body: JSON.stringify({
+      model: model.id, input: 'Hello', max_output_tokens: 128, stream: true,
+    }) })).text();
+    expect(output).toContain('response.completed');
+    expect(output).not.toContain('response.failed');
+  });
   it.each(['claude-code', 'codex', 'pi'] as const)
   ('serializes the Hinoki %s preset through Bearer Chat without changing the wire model', async agent => {
     const preset = BUNDLED_CATALOG.presets!.find(p => p.id === 'hinoki')!;

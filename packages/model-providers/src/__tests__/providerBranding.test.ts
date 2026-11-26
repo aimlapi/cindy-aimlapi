@@ -63,6 +63,14 @@ describe('provider branding', () => {
     expect(hasProviderLogo(providerId)).toBe(true);
   });
 
+  it('only infers AI/ML API branding from the exact api.aimlapi.com host', () => {
+    expect(resolveProviderLogoKind('aimlapi')).toBe('aimlapi');
+    expect(resolveProviderLogoKind('renamed', { pi: { upstream: 'https://api.aimlapi.com/v1' } })).toBe('aimlapi');
+    for (const upstream of ['https://api.aimlapi.com.evil.test/v1', 'https://evilapi.aimlapi.com/v1']) {
+      expect(resolveProviderLogoKind('renamed', { pi: { upstream } })).toBeNull();
+    }
+  });
+
   it('only infers Vercel branding from the exact AI Gateway host', () => {
     expect(resolveProviderLogoKind('renamed', {
       codex: { upstream: 'https://ai-gateway.vercel.sh/v1' },

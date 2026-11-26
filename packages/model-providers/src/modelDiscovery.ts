@@ -33,6 +33,16 @@ export function isOpenHubsModelsUrl(value: string): boolean {
   } catch { return false; }
 }
 
+/** AI/ML API lists every endpoint type (images, video, Responses, Messages) in one catalog. */
+export function isAimlapiModelsUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.origin === 'https://api.aimlapi.com'
+      && url.pathname.replace(/\/+$/, '') === '/v1/models'
+      && !url.hash && !url.username && !url.password;
+  } catch { return false; }
+}
+
 /** OpenCode Zen and Go document MIME entries as accepted types, unlike generic relays
  * which can list formats even when image input is disabled (#11446).
  */
@@ -132,6 +142,7 @@ export function parseModelsListResponse(
   const copilot = sourceUrl && copilotModelsUrl(sourceUrl);
   const magpieCatalog = list.some(item => !!item && typeof item === "object" && !!discoveredMagpieSource(item as Record<string, unknown>));
   const openCode = openCodeModelsChannel(sourceUrl);
+  const aimlapi = sourceUrl !== undefined && isAimlapiModelsUrl(sourceUrl);
   const out: DiscoveredModel[] = [];
   const seen = new Set<string>();
   for (const item of list) {
@@ -161,6 +172,9 @@ export function parseModelsListResponse(
                     ? (item as { model_id: string }).model_id
                     : google ? google.name.slice('models/'.length) : null
           : null;
+    // The same id repeats once per endpoint type; only Chat Completions rows run through
+    // the preset's openai-chat runtime. Filter before de-duplication so order does not matter.
+    if (aimlapi && (item as { type?: unknown } | null)?.type !== 'openai/chat-completions') continue;
     if (!id || seen.has(id)) continue;
     seen.add(id);
     const rec =
@@ -176,7 +190,9 @@ export function parseModelsListResponse(
             limit?: { context?: unknown; output?: unknown };
           })
         : null;
+    const aimlapiName = aimlapi ? (item as { info?: { name?: unknown } }).info?.name : undefined;
     const name = google && typeof google.displayName === 'string' ? google.displayName :
+      typeof aimlapiName === 'string' && aimlapiName.length > 0 ? aimlapiName :
       rec && typeof rec.display_name === "string" && rec.display_name.length > 0
         ? rec.display_name
         : rec && typeof rec.name === "string" && rec.name.length > 0
@@ -195,6 +211,7 @@ export function parseModelsListResponse(
           rec.max_context_length,
           rec.max_input_tokens,
           google?.inputTokenLimit,
+          aimlapi ? (item as { info?: { contextLength?: unknown } }).info?.contextLength : undefined,
         ].map(value => contextTokens(value, true)).find(value => value !== undefined)
       : undefined;
     const record =
