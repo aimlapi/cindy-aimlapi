@@ -2431,7 +2431,7 @@
     {
       "id": "aimlapi",
       "name": "AI/ML API",
-      "docsUrl": "https://docs.aimlapi.com/quickstart/setting-up",
+      "docsUrl": "https://docs.aimlapi.com/quickstart/simple-model",
       "regionHint": "global",
       "models": [
         {
