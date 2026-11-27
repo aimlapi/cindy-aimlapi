@@ -187,6 +187,18 @@ describe('import discovery limits', () => {
       await Promise.all([official, other].map(server => new Promise(resolve => server.close(resolve))));
     }
   });
+  // The public catalog is ~0.9 MB uncompressed; one wizard fetch for the three runtimes
+  // must read it once (§8.1), as for Hinoki / Token Rhythm.
+  it('reads the AI/ML API catalog once for the three concurrent runtimes', async () => {
+    const preset = BUNDLED_CATALOG.presets!.find(p => p.id === 'aimlapi')!;
+    const transport = vi.fn<typeof fetch>(async () => fakeResponse(200, JSON.stringify({ data: [
+      { id: 'vendor/chat', type: 'openai/chat-completions', info: { name: 'Chat' } },
+    ] })));
+    const results = await Promise.all((['claude-code', 'codex', 'pi'] as const)
+      .map(agent => fetchProviderModels(spec({ ...preset.runtimes[agent], agent }), transport)));
+    expect(transport).toHaveBeenCalledOnce();
+    expect(results.map(result => result.models?.map(m => m.id))).toEqual([['vendor/chat'], ['vendor/chat'], ['vendor/chat']]);
+  });
   // #9101 review regression: three identical Chat runtimes must perform one
   // HTTP read, while each consumer still issues its own agent-bound receipt.
   it('coalesces concurrent Hinoki reads without sharing agent provenance', async () => {

@@ -77,7 +77,7 @@ function isOfficialOpenAiModelList(value: unknown): boolean {
     && list.data.every(entry => entry && typeof entry.id === 'string' && entry.id.trim() === entry.id && entry.id !== '');
 }
 
-// Share only an in-flight Hinoki/Token Rhythm HTTP read, not parsed models or agent-bound
+// Share only an in-flight Hinoki/Token Rhythm/AI/ML API HTTP read, not parsed models or agent-bound
 // provenance receipts. Every caller keeps its own parsing/error policy below.
 const sharedModelReads = new WeakMap<typeof fetch, Map<string, {
   response: Promise<Response>;
@@ -86,7 +86,8 @@ const sharedModelReads = new WeakMap<typeof fetch, Map<string, {
 
 async function fetchModelsResponse(url: string, init: RequestInit, fetchImpl: typeof fetch): Promise<Response> {
   if (url !== 'https://inference.hinoki.security/v1/models'
-    && url !== 'https://tokenrhythm.studio/v1/models') return fetchImpl(url, init);
+    && url !== 'https://tokenrhythm.studio/v1/models'
+    && url !== 'https://api.aimlapi.com/v1/models') return fetchImpl(url, init);
   let reads = sharedModelReads.get(fetchImpl);
   if (!reads) { reads = new Map(); sharedModelReads.set(fetchImpl, reads); }
   // The existing process-local HMAC includes all effective headers (including
